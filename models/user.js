@@ -1,6 +1,9 @@
 "use strict";
 
 /** User of the site. */
+const { NotFoundError } = require("../expressError");
+const db = require("../db");
+const { BCRYPT_WORK_FACTOR } = require("../config")
 
 class User {
 
@@ -9,11 +12,33 @@ class User {
    */
 
   static async register({ username, password, first_name, last_name, phone }) {
+    const hashedPwd = await bcrypt.hash(password, BCRYPT_WORK_FACTOR);
+    const result = await db.query(
+      `INSERT INTO users (username,
+                             password,
+                             first_name,
+                             last_name,
+                             phone,
+                             join_at,
+                             last_login_at)
+         VALUES
+           ($1, $2, $3, $4, $5, current_timestamp, current_timestamp)
+         RETURNING id, from_username, to_username, body, sent_at`,
+    [username, hashedPwd, first_name, last_name, phone]);
+
+    return result.rows[0];
   }
 
   /** Authenticate: is username/password valid? Returns boolean. */
 
   static async authenticate(username, password) {
+    const user = db.query(
+      `SELECT username, password
+        FROM users
+        WHERE username = $1 AND `
+    )
+
+    const isPasswordValid = bcrypt
   }
 
   /** Update last_login_at for user */
