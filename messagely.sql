@@ -23,6 +23,14 @@ CREATE TABLE messages (
   sent_at TIMESTAMP WITH TIME ZONE NOT NULL,
   read_at TIMESTAMP WITH TIME ZONE);
 
+INSERT INTO users
+VALUES ('user1', '1234', 'john', 'doe', '5555555555', '2023-10-15 14:30:00 -05:00'),
+       ('user2', '1234', 'silu', 'yooo', '999999999', '2023-10-15 14:30:00 -05:00');
+
+INSERT INTO messages (from_username, to_username, body, sent_at, read_at)
+VALUES ('user1', 'user2', 'hello testing number 1', '2023-10-15 15:30:00 -05:00', '2023-10-15 16:30:00 -05:00'),
+       ('user2', 'user1', 'bye testing number 2', '2023-10-15 17:30:00 -05:00', '2023-10-15 18:30:00 -05:00');
+
 
 \echo 'Delete and recreate messagely_test db?'
 \prompt 'Return for yes or control-C to cancel > ' foo
