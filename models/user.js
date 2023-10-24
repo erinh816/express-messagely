@@ -128,20 +128,18 @@ class User {
       `, [username]
     );
 
-    let messages = [];
-
-    for (let msg of results.rows) {
-      const { id, to_username, body, sent_at, read_at, username, first_name, last_name, phone } = msg;
-      let toUser = {
-        username: to_username,
-        first_name,
-        last_name,
-        phone
-      };
-      messages.push({ id, to_user: toUser, body, sent_at, read_at})
-    }
-
-    return messages;
+    return results.rows.map(msg => ({
+      id: msg.id,
+      to_user: {
+        username: msg.to_username,
+        first_name: msg.first_name,
+        last_name: msg.last_name,
+        phone: msg.phone
+      },
+      body: msg.body,
+      sent_at: msg.sent_at,
+      read_at: msg.read_at
+    }));
   }
 
   /** Return messages to this user.
