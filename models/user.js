@@ -1,10 +1,12 @@
 "use strict";
 
-/** User of the site. */
 const { NotFoundError } = require("../expressError");
 const db = require("../db");
 const { BCRYPT_WORK_FACTOR } = require("../config");
 const bcrypt = require("bcrypt");
+
+
+/** User of the site. */
 
 class User {
 
@@ -15,14 +17,15 @@ class User {
   static async register({ username, password, first_name, last_name, phone }) {
     const hashedPwd = await bcrypt.hash(password, BCRYPT_WORK_FACTOR);
     const result = await db.query(
-      `INSERT INTO users (username,
-                             password,
-                             first_name,
-                             last_name,
-                             phone,
-                             join_at)
+      `INSERT INTO users (
+          username,
+          password,
+          first_name,
+          last_name,
+          phone,
+          join_at)
          VALUES
-           ($1, $2, $3, $4, $5, current_timestamp)
+          ($1, $2, $3, $4, $5, current_timestamp)
          RETURNING username, password, first_name, last_name, phone`,
       [username, hashedPwd, first_name, last_name, phone]);
 
@@ -42,7 +45,7 @@ class User {
 
     if (!user) return false;
 
-    return bcrypt.compare(password, user.password);
+    return await bcrypt.compare(password, user.password) === true;
   }
 
   /** Update last_login_at for user */
@@ -67,6 +70,7 @@ class User {
     const result = await db.query(
       `SELECT username, first_name, last_name
         FROM users
+        ORDER BY username
       `
     );
 
@@ -84,12 +88,13 @@ class User {
 
   static async get(username) {
     const result = await db.query(
-      `SELECT username,
-              first_name,
-              last_name,
-              phone,
-              join_at,
-              last_login_at
+      `SELECT
+        username,
+        first_name,
+        last_name,
+        phone,
+        join_at,
+        last_login_at
        FROM users
        WHERE username = $1
       `, [username]
@@ -113,18 +118,18 @@ class User {
   static async messagesFrom(username) {
     const results = await db.query(
       `SELECT
-        m.id,
-        m.to_username,
-        m.body,
-        m.sent_at,
-        m.read_at,
-        u.username,
-        u.first_name,
-        u.last_name,
-        u.phone
+          m.id,
+          m.to_username,
+          m.body,
+          m.sent_at,
+          m.read_at,
+          u.username,
+          u.first_name,
+          u.last_name,
+          u.phone
         FROM messages AS m
         JOIN users AS u ON m.to_username = u.username
-        WHERE username = $1
+        WHERE from_username = $1
       `, [username]
     );
 
@@ -154,19 +159,32 @@ class User {
     const results = await db.query(
       `SELECT
         m.id,
-        m.to_user,
+        m.from_username,
         m.body,
         m.sent_at,
-        m.read_at.
+        m.read_at,
         u.username,
         u.first_name,
         u.last_name,
         u.phone
         FROM messages AS m
         JOIN users AS u ON m.from_username = u.username
-        WHERE username = $1
+        WHERE to_username = $1
       `, [username]
     );
+
+    return results.rows.map(msg => ({
+      id: msg.id,
+      from_user: {
+        username: msg.from_username,
+        first_name: msg.first_name,
+        last_name: msg.last_name,
+        phone: msg.phone
+      },
+      body: msg.body,
+      sent_at: msg.sent_at,
+      read_at: msg.read_at
+    }));
   }
 }
 
