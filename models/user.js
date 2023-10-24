@@ -4,6 +4,7 @@
 const { NotFoundError } = require("../expressError");
 const db = require("../db");
 const { BCRYPT_WORK_FACTOR } = require("../config");
+const bcrypt = require("bcrypt");
 
 class User {
 
@@ -19,11 +20,10 @@ class User {
                              first_name,
                              last_name,
                              phone,
-                             join_at,
-                             last_login_at)
+                             join_at)
          VALUES
-           ($1, $2, $3, $4, $5, current_timestamp, current_timestamp)
-         RETURNING id, from_username, to_username, body, sent_at`,
+           ($1, $2, $3, $4, $5, current_timestamp)
+         RETURNING username, password, first_name, last_name, phone`,
       [username, hashedPwd, first_name, last_name, phone]);
 
     return result.rows[0];
@@ -32,7 +32,7 @@ class User {
   /** Authenticate: is username/password valid? Returns boolean. */
 
   static async authenticate(username, password) {
-    const result = db.query(
+    const result = await db.query(
       `SELECT password
         FROM users
         WHERE username = $1`, [username]
@@ -57,13 +57,20 @@ class User {
 
     let user = result.rows[0];
 
-    if (!user) throw new NotFoundError(`Can't' find this user: ${username}`);
+    if (!user) throw new NotFoundError(`Can't find this user: ${username}`);
   }
 
   /** All: basic info on all users:
    * [{username, first_name, last_name}, ...] */
 
   static async all() {
+    const result = await db.query(
+      `SELECT username, first_name, last_name
+        FROM users
+      `
+    );
+
+    return result.rows;
   }
 
   /** Get: get user by username
@@ -76,6 +83,23 @@ class User {
    *          last_login_at } */
 
   static async get(username) {
+    const result = await db.query(
+      `SELECT username,
+              first_name,
+              last_name,
+              phone,
+              join_at,
+              last_login_at
+       FROM users
+       WHERE username = $1
+      `, [username]
+    );
+
+    const user = result.rows[0];
+
+    if (!user) throw new NotFoundError(`Can't find this user: ${username}`);
+
+    return user;
   }
 
   /** Return messages from this user.
@@ -87,6 +111,37 @@ class User {
    */
 
   static async messagesFrom(username) {
+    const results = await db.query(
+      `SELECT
+        m.id,
+        m.to_username,
+        m.body,
+        m.sent_at,
+        m.read_at,
+        u.username,
+        u.first_name,
+        u.last_name,
+        u.phone
+        FROM messages AS m
+        JOIN users AS u ON m.to_username = u.username
+        WHERE username = $1
+      `, [username]
+    );
+
+    let messages = [];
+
+    for (let msg of results.rows) {
+      const { id, to_username, body, sent_at, read_at, username, first_name, last_name, phone } = msg;
+      let toUser = {
+        username: to_username,
+        first_name,
+        last_name,
+        phone
+      };
+      messages.push({ id, to_user: toUser, body, sent_at, read_at})
+    }
+
+    return messages;
   }
 
   /** Return messages to this user.
@@ -98,6 +153,22 @@ class User {
    */
 
   static async messagesTo(username) {
+    const results = await db.query(
+      `SELECT
+        m.id,
+        m.to_user,
+        m.body,
+        m.sent_at,
+        m.read_at.
+        u.username,
+        u.first_name,
+        u.last_name,
+        u.phone
+        FROM messages AS m
+        JOIN users AS u ON m.from_username = u.username
+        WHERE username = $1
+      `, [username]
+    );
   }
 }
 
