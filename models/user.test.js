@@ -39,7 +39,7 @@ describe("Test User class", function () {
     expect(isValid).toBeFalsy();
   });
 
-
+  //add this: await User.updateLoginTimestamp("test")
   test("can update login timestamp", async function () {
     await db.query("UPDATE users SET last_login_at=NULL WHERE username='test'");
     let u = await User.get("test");
@@ -50,6 +50,7 @@ describe("Test User class", function () {
     expect(u2.last_login_at).not.toBe(null);
   });
 
+  //update last_login_at:null
   test("can get", async function () {
     let u = await User.get("test");
     expect(u).toEqual({

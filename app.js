@@ -33,6 +33,7 @@ app.use("/messages", messageRoutes);
 
 /** 404 handler: matches unmatched routes; raises NotFoundError. */
 app.use(function (req, res, next) {
+  console.log('error here');
   throw new NotFoundError();
 });
 
